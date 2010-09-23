@@ -431,7 +431,10 @@ public class EmReactor {
 	}
 
 	public void sendData (long sig, ByteBuffer bb) throws IOException {
-		Connections.get(sig).scheduleOutboundData( bb );
+        EventableChannel channel = Connections.get(sig);
+        if (channel != null) {
+           channel.scheduleOutboundData( bb );
+        }
 	}
 
 	public void sendData (long sig, byte[] data) throws IOException {
