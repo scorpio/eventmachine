@@ -140,12 +140,15 @@ public class EmReactor {
 	}
 
 	void removeUnboundConnections() {
-		ListIterator<Long> iter = UnboundConnections.listIterator(0);
-		while (iter.hasNext()) {
-			long b = iter.next();
-
+        ArrayList<Long> currentUnboundConnections = UnboundConnections;
+        //fix concurrent modification exception
+		UnboundConnections = new ArrayList<Long>();
+        for(long b : currentUnboundConnections) {
 			EventableChannel ec = Connections.remove(b);
 			if (ec != null) {
+                if (ProxyConnections != null) {
+                    ProxyConnections.remove(b);
+                }
 				eventCallback (b, EM_CONNECTION_UNBOUND, null);
 				ec.close();
 
@@ -154,7 +157,6 @@ public class EmReactor {
 					DetachedConnections.add (sc);
 			}
 		}
-		UnboundConnections.clear();
 	}
 
 	void checkIO() {
@@ -257,10 +259,13 @@ public class EmReactor {
 				ec.readInboundData (myReadBuffer);
 				myReadBuffer.flip();
 				if (myReadBuffer.limit() > 0) {
-                    if (ProxyConnections.size != null) {
+                    if (ProxyConnections != null) {
                         EventableChannel target = ProxyConnections.get(b);
                         if (target != null) {
-                            target.scheduleOutboundData( myReadBuffer );
+                            ByteBuffer myWriteBuffer = ByteBuffer.allocate(myReadBuffer.limit());
+                            myWriteBuffer.put(myReadBuffer);
+                            myWriteBuffer.flip();
+                            target.scheduleOutboundData( myWriteBuffer );
                         } else {
 					        eventCallback (b, EM_CONNECTION_READ, myReadBuffer);
                         }
@@ -599,5 +604,8 @@ public class EmReactor {
 
     public void stopProxy(long from) {
         ProxyConnections.remove(from);
+    }
+
+    public void log(String str) {
     }
 }

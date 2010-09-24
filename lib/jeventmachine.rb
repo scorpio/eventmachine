@@ -247,11 +247,11 @@ module EventMachine
   def self.get_connection_count
     @em.getConnectionCount
   end
-  def self.enable_proxy(from, to, bufsize=0, length=0)
-    @em.startProxy(from.signature, to.signature)
+  def self.start_proxy(from, to, bufsize=0, length=0)
+    @em.startProxy(from, to)
   end
-  def self.disable_proxy(from)
-    @em.stopProxy(from.signature)
+  def self.stop_proxy(from)
+    @em.stopProxy(from)
   end
 
   class Connection
