@@ -597,7 +597,7 @@ public class EmReactor {
         }
     }
 
-    public boolean stopProxy(long from) {
+    public void stopProxy(long from) {
         ProxyConnections.remove(from);
     }
 }
