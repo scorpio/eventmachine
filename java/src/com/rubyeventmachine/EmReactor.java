@@ -57,6 +57,7 @@ public class EmReactor {
 	private ArrayList<Long> NewConnections;
 	private ArrayList<Long> UnboundConnections;
 	private ArrayList<EventableSocketChannel> DetachedConnections;
+	private HashMap<Long, EventableChannel> ProxyConnections;
 
 	private boolean bRunReactor;
 	private long BindingIndex;
@@ -255,8 +256,18 @@ public class EmReactor {
 			try {
 				ec.readInboundData (myReadBuffer);
 				myReadBuffer.flip();
-				if (myReadBuffer.limit() > 0)
-					eventCallback (b, EM_CONNECTION_READ, myReadBuffer);
+				if (myReadBuffer.limit() > 0) {
+                    if (ProxyConnections.size != null) {
+                        EventableChannel target = ProxyConnections.get(b);
+                        if (target != null) {
+                            target.scheduleOutboundData( myReadBuffer );
+                        } else {
+					        eventCallback (b, EM_CONNECTION_READ, myReadBuffer);
+                        }
+                    } else {
+					    eventCallback (b, EM_CONNECTION_READ, myReadBuffer);
+                    }
+                }
 			} catch (IOException e) {
 				UnboundConnections.add (b);
 			}
@@ -571,4 +582,22 @@ public class EmReactor {
 	public int getConnectionCount() {
 	  return Connections.size() + Acceptors.size();
 	}
+
+    public boolean startProxy(long from, long to) {
+        //lazy init for proxy support check quickly in isReadable
+        if (ProxyConnections == null) {
+		    ProxyConnections = new HashMap<Long, EventableChannel>();
+        }
+        EventableChannel target = Connections.get(to);
+        if (target != null) {
+            ProxyConnections.put(from, target);
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    public boolean stopProxy(long from) {
+        ProxyConnections.remove(from);
+    }
 }
